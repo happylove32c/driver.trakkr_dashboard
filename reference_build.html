@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRAKKR — Driver Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    :root {
+      --bg: #FFFFFF;
+      --surface: #f0ece0;
+      --card: #fffdf7;
+      --border: #111111;
+      --accent: #FFD700;
+      --accent-dark: #111111;
+      --success: #22c55e;
+      --warning: #F7A948;
+      --danger: #ef4444;
+      --text-main: #111111;
+      --text-muted: #777777;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--surface);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    #app-container {
+      width: 100%;
+      max-width: 420px;
+      background-color: var(--bg);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 8px 0 0 #111111, -8px 0 0 #111111;
+      min-height: 100vh;
+    }
+
+    .view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+      padding-bottom: 96px;
+    }
+
+    .view.active {
+      display: flex;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Top Bar ── */
+    .top-bar {
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      background-color: var(--accent);
+      border-bottom: 3px solid var(--border);
+      z-index: 10;
+    }
+
+    .back-btn {
+      background: var(--border);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 18px;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .back-btn:active { transform: translate(2px,2px); box-shadow: none; }
+
+    .view-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      letter-spacing: 0.04em;
+      color: var(--text-main);
+    }
+
+    .content-area {
+      padding: 0 20px 20px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background-color: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 3px 3px 0 var(--border);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      background-color: var(--accent);
+      color: var(--text-main);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px 24px;
+      font-size: 15px;
+      font-family: 'Anton', sans-serif;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+
+    .btn:hover  { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--border); }
+    .btn:active { transform: translate(2px,2px);   box-shadow: 2px 2px 0 var(--border); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--border); }
+
+    .btn-success {
+      background-color: var(--success);
+      border-color: var(--border);
+      color: #fff;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--danger);
+      border-color: var(--danger);
+      box-shadow: 4px 4px 0 var(--danger);
+    }
+    .btn-outline:hover  { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--danger); }
+    .btn-outline:active { transform: translate(2px,2px);   box-shadow: 2px 2px 0 var(--danger); }
+
+    /* ── Progress Track ── */
+    .progress-track {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 20px 0;
+      position: relative;
+      margin-bottom: 20px;
+      background: var(--accent);
+      border-bottom: 3px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    .progress-track::before {
+      content: '';
+      position: absolute;
+      top: 30px;
+      left: 34px;
+      right: 34px;
+      height: 2px;
+      background-color: rgba(0,0,0,0.15);
+      z-index: 1;
+    }
+
+    .line-fill {
+      position: absolute;
+      top: 30px;
+      left: 34px;
+      height: 2px;
+      background-color: var(--border);
+      z-index: 2;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .step-container {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .progress-step {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: rgba(0,0,0,0.1);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      color: var(--text-main);
+      border: 2px solid var(--border);
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+
+    .progress-step.active {
+      background-color: var(--border);
+      color: var(--accent);
+      border-color: var(--border);
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+    }
+
+    .progress-step.completed {
+      background-color: var(--success);
+      color: #fff;
+      border-color: var(--border);
+    }
+
+    .step-label {
+      font-size: 9px;
+      color: var(--text-main);
+      font-weight: 700;
+      text-align: center;
+      max-width: 56px;
+      opacity: 0.7;
+    }
+
+    /* ── Typography ── */
+    h1 { font-family: 'Anton', sans-serif; font-size: 30px; letter-spacing: 0.02em; line-height: 1.1; margin-bottom: 8px; color: var(--text-main); }
+    h2 { font-family: 'Anton', sans-serif; font-size: 24px; letter-spacing: 0.02em; text-align: center; margin-bottom: 8px; color: var(--text-main); }
+    h3 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+    p  { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+
+    .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .value { font-size: 13px; color: var(--text-main); font-weight: 600; }
+
+    /* ── Login ── */
+    #view-login {
+      justify-content: center;
+      padding: 48px 28px 0;
+      align-items: center;
+      text-align: center;
+      background: var(--surface);
+    }
+
+    .logo-container {
+      width: 68px;
+      height: 68px;
+      background-color: var(--accent);
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      display: grid;
+      place-items: center;
+      margin-bottom: 28px;
+      font-size: 32px;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+
+    .google-btn { margin-top: 40px; }
+    .google_logo { width: 22px; height: 22px; }
+
+    /* ── Greeting ── */
+    .greeting {
+      padding: 20px 20px 14px;
+      background: var(--accent);
+      border-bottom: 3px solid var(--border);
+    }
+    .greeting p  { font-size: 12px; margin: 0; color: var(--text-main); opacity: 0.7; font-weight: 600; }
+    .greeting h1 { font-size: 22px; margin: 2px 0 0; }
+
+    /* ── Job Cards ── */
+    .job-item { cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+    .job-item:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--border); }
+    .job-item:active { transform: translate(2px, 2px);  box-shadow: 1px 1px 0 var(--border); }
+
+    .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
+    .badge {
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .badge-delivery { background: var(--accent); color: var(--text-main); }
+    .badge-pickup   { background: var(--border);  color: var(--accent); }
+
+    .distance { font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 3px; }
+
+    .route { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    .route-point { display: flex; align-items: flex-start; gap: 8px; }
+    .route-point .label { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 0; white-space: nowrap; min-width: 42px; }
+    .route-point .value { font-size: 12px; color: var(--text-main); font-weight: 500; }
+
+    /* ── Photo Area ── */
+    .photo-area {
+      background-color: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .photo-area i     { font-size: 36px; margin-bottom: 8px; display: block; color: var(--text-muted); }
+    .photo-area span  { font-weight: 700; font-size: 14px; color: var(--text-main); display: block; }
+    .photo-area small { color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; }
+
+    .photo-area.taken { background-color: #dcfce7; border-color: var(--success); border-style: solid; }
+    .photo-area.taken i    { color: var(--success); }
+    .photo-area.taken span { color: var(--success); }
+
+    /* ── Map ── */
+    .map-placeholder {
+      height: 200px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 3px 3px 0 var(--border);
+    }
+
+    /* ── Job Complete ── */
+    #view-job-complete {
+      justify-content: center;
+      align-items: center;
+      padding: 48px 28px;
+      background: var(--surface);
+    }
+
+    .success-icon {
+      width: 84px;
+      height: 84px;
+      background-color: #dcfce7;
+      color: var(--success);
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      margin-bottom: 20px;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 420px;
+      background-color: var(--accent);
+      border-top: 3px solid var(--border);
+      border-radius: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 8px 18px;
+      z-index: 20;
+    }
+
+    .bottom-nav.hidden { display: none; }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-main);
+      cursor: pointer;
+      text-decoration: none;
+      flex: 1;
+      transition: color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      opacity: 0.55;
+    }
+
+    .nav-item.active { opacity: 1; }
+
+    .nav-icon-wrap {
+      width: 44px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s;
+    }
+
+    .nav-item.active .nav-icon-wrap {
+      background: var(--border);
+    }
+
+    .material-symbols-rounded {
+      font-size: 22px;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      transition: font-variation-settings 0.2s;
+      color: var(--text-main);
+    }
+
+    .nav-item.active .material-symbols-rounded {
+      color: var(--accent);
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: inherit;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .receipt-modal {
+      background: var(--card);
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      box-shadow: 6px 6px 0 var(--border);
+      transform: translateY(16px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.active .receipt-modal { transform: translateY(0); }
+
+    .receipt-divider { border-top: 2px dashed var(--border); margin: 14px 0; }
+
+    .receipt-close {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: var(--border);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--accent);
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+    }
+
+    /* ── Placeholder ── */
+    .placeholder-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 40px 28px;
+    }
+    .placeholder-icon {
+      width: 68px; height: 68px;
+      background: var(--accent);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 34px;
+      box-shadow: 4px 4px 0 var(--border);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 390px) {
+      .top-bar    { padding: 14px 16px 12px; }
+      .content-area { padding: 0 16px 16px; }
+      .card       { padding: 14px; margin-bottom: 10px; }
+      .btn        { padding: 13px 20px; font-size: 14px; }
+      h1          { font-size: 26px; }
+      h2          { font-size: 20px; }
+      .photo-area { padding: 24px 16px; margin-bottom: 14px; }
+      .progress-track { padding: 14px 16px 14px; }
+      .progress-track::before { left: 28px; right: 28px; top: 27px; }
+      .line-fill  { left: 28px; top: 27px; }
+      .progress-step { width: 22px; height: 22px; font-size: 10px; }
+      .step-label { font-size: 8px; max-width: 48px; }
+      .logo-container { width: 60px; height: 60px; font-size: 26px; margin-bottom: 20px; }
+      .bottom-nav { padding: 8px 4px 12px; }
+      .nav-icon-wrap { width: 38px; height: 26px; }
+      .material-symbols-rounded { font-size: 20px; }
+      .receipt-modal { padding: 16px; }
+      .success-icon  { width: 70px; height: 70px; font-size: 34px; margin-bottom: 14px; }
+      #view-login    { padding: 32px 20px 0; }
+      #view-job-complete { padding: 32px 20px; }
+      .greeting { padding: 16px 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- 1. LOGIN -->
+    <div id="view-login" class="view active">
+      <div class="logo-container">
+        <i class="ph-bold ph-truck" style="color:#111111;"></i>
+      </div>
+      <h1>Driver<br/>Portal</h1>
+      <p>Log in to manage your deliveries.</p>
+      <button class="btn google-btn" onclick="app.navigate('job-list')">
+        <img src="https://www.svgrepo.com/show/448227/google.svg" alt="" class="google_logo">
+        Sign in with Google
+      </button>
+    </div>
+
+    <!-- 2. JOB LIST -->
+    <div id="view-job-list" class="view">
+      <div class="greeting">
+        <p>Welcome back,</p>
+        <h1 id="welcome-name">Driver</h1>
+      </div>
+      <div class="content-area" style="padding-top:16px;" id="job-list-container"></div>
+    </div>
+
+    <!-- 3. JOB DETAIL -->
+    <div id="view-job-detail" class="view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="app.navigate('job-list')"><i class="ph-bold ph-arrow-left"></i></button>
+        <span class="view-title">Job Details</span>
+      </div>
+      <div id="track-detail"></div>
+      <div class="content-area">
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Pickup</div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Address</span><span class="value" id="detail-pickup" style="text-align:right;max-width:60%;"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Contact</span><span class="value" id="detail-pickup-contact"></span></div>
+        </div>
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Delivery</div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Address</span><span class="value" id="detail-delivery" style="text-align:right;max-width:60%;"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Contact</span><span class="value" id="detail-delivery-contact"></span></div>
+        </div>
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Package</div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Contents</span><span class="value" id="detail-pkg"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span class="label">Weight</span><span class="value" id="detail-weight"></span></div>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-success" onclick="app.navigate('pickup-confirm')">Accept Job</button>
+      </div>
+    </div>
+
+    <!-- 4. PICKUP CONFIRM -->
+    <div id="view-pickup-confirm" class="view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="app.navigate('job-detail')"><i class="ph-bold ph-arrow-left"></i></button>
+        <span class="view-title">Confirm Pickup</span>
+      </div>
+      <div id="track-pickup"></div>
+      <div class="content-area">
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Pickup Location</div>
+          <div class="value" style="font-size:14px;margin-top:4px;" id="pickup-addr"></div>
+        </div>
+        <h3>Proof of Pickup</h3>
+        <div class="photo-area" id="pickup-photo" onclick="app.takePhoto('pickup')">
+          <i class="ph ph-camera"></i>
+          <span>Tap to take photo</span>
+          <small>Required before continuing</small>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-success" id="btn-confirm-pickup" disabled onclick="app.navigate('navigation')">Confirm Pickup</button>
+      </div>
+    </div>
+
+    <!-- 5. NAVIGATION -->
+    <div id="view-navigation" class="view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="app.navigate('pickup-confirm')"><i class="ph-bold ph-arrow-left"></i></button>
+        <span class="view-title">En Route</span>
+      </div>
+      <div id="track-nav"></div>
+      <div class="content-area">
+        <div class="map-placeholder">
+          <i class="ph-bold ph-map-trifold" style="font-size:40px;color:var(--text-muted);"></i>
+          <span style="font-weight:700;font-size:13px;color:var(--text-main);">Google Maps</span>
+          <span style="font-size:11px;color:var(--text-muted);" id="map-coords"></span>
+        </div>
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Destination</div>
+          <div class="value" style="font-size:14px;margin-top:4px;" id="nav-destination"></div>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn" onclick="app.navigate('delivery-confirm')">I've Arrived</button>
+      </div>
+    </div>
+
+    <!-- 6. DELIVERY CONFIRM -->
+    <div id="view-delivery-confirm" class="view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="app.navigate('navigation')"><i class="ph-bold ph-arrow-left"></i></button>
+        <span class="view-title">Confirm Delivery</span>
+      </div>
+      <div id="track-delivery"></div>
+      <div class="content-area">
+        <div class="card">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Delivering To</div>
+          <div class="value" style="font-size:14px;margin-top:4px;" id="delivery-addr"></div>
+        </div>
+        <h3>Proof of Delivery</h3>
+        <div class="photo-area" id="delivery-photo" onclick="app.takePhoto('delivery')">
+          <i class="ph ph-camera"></i>
+          <span>Tap to take photo</span>
+          <small>Required before confirming</small>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-success" id="btn-confirm-delivery" disabled onclick="app.navigate('job-complete')">Confirm Delivery</button>
+      </div>
+    </div>
+
+    <!-- NO ACTIVE JOB -->
+    <div id="view-active-empty" class="view">
+      <div class="top-bar"><span class="view-title">Active Job</span></div>
+      <div class="placeholder-view">
+        <div class="placeholder-icon">
+          <span class="material-symbols-rounded" style="font-size:34px;color:#111111;font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 40;">local_shipping</span>
+        </div>
+        <p style="text-align:center;font-size:13px;">No active job right now.</p>
+      </div>
+    </div>
+
+    <!-- 7. JOB COMPLETE -->
+    <div id="view-job-complete" class="view">
+      <div class="success-icon">
+        <span class="material-symbols-rounded" style="font-size:42px;color:var(--success);">check</span>
+      </div>
+      <h2>Delivery Complete</h2>
+      <p style="margin-bottom:28px;text-align:center;">Admin has been notified. Package delivered to <strong id="done-contact"></strong>.</p>
+      <div class="card" style="width:100%;text-align:left;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span class="label">Job ID</span><span class="value" id="done-id"></span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span class="label">Delivered to</span><span class="value" id="done-addr" style="text-align:right;max-width:60%;"></span></div>
+        <div style="display:flex;justify-content:space-between;"><span class="label">Package</span><span class="value" id="done-pkg"></span></div>
+      </div>
+      <button class="btn" onclick="app.finishJob()">Back to Jobs</button>
+    </div>
+
+    <!-- 8. HISTORY -->
+    <div id="view-history" class="view">
+      <div class="top-bar"><span class="view-title">History</span></div>
+      <div class="content-area" style="padding-top:16px;" id="history-list-container"></div>
+    </div>
+
+    <!-- 9. PROFILE -->
+    <div id="view-profile" class="view">
+      <div class="top-bar"><span class="view-title">Profile</span></div>
+      <div class="content-area" style="padding-top:28px;align-items:center;">
+        <div class="logo-container" style="border-radius:50%;margin-bottom:14px;">
+          <span class="material-symbols-rounded" style="font-size:36px;color:#111111;">person</span>
+        </div>
+        <h2 id="profile-name">Driver Name</h2>
+        <p id="profile-email" style="margin-bottom:20px;">email@example.com</p>
+        <div class="card" style="width:100%;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="label">Phone</span><span class="value" id="profile-phone"></span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="label">Status</span><span class="value" style="color:var(--success);">Active</span></div>
+          <div style="display:flex;justify-content:space-between;"><span class="label">Member Since</span><span class="value" id="profile-date"></span></div>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-outline" onclick="app.logout()">Log Out</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav id="bottom-nav" class="bottom-nav hidden">
+      <div class="nav-item" id="nav-tab-jobs" onclick="app.navTab('jobs')">
+        <div class="nav-icon-wrap">
+          <span class="material-symbols-rounded">work</span>
+        </div>
+        <span class="nav-label">Jobs</span>
+      </div>
+      <div class="nav-item" id="nav-tab-active" onclick="app.navTab('active')">
+        <div class="nav-icon-wrap">
+          <span class="material-symbols-rounded">local_shipping</span>
+        </div>
+        <span class="nav-label">Active</span>
+      </div>
+      <div class="nav-item" id="nav-tab-history" onclick="app.navTab('history')">
+        <div class="nav-icon-wrap">
+          <span class="material-symbols-rounded">history</span>
+        </div>
+        <span class="nav-label">History</span>
+      </div>
+      <div class="nav-item" id="nav-tab-profile" onclick="app.navTab('profile')">
+        <div class="nav-icon-wrap">
+          <span class="material-symbols-rounded">person</span>
+        </div>
+        <span class="nav-label">Profile</span>
+      </div>
+    </nav>
+
+    <!-- RECEIPT MODAL -->
+    <div id="receipt-modal-overlay" class="modal-overlay" onclick="app.closeReceiptModal(event)">
+      <div class="receipt-modal" onclick="event.stopPropagation()">
+        <button class="receipt-close" onclick="app.closeReceiptModal()">
+          <span class="material-symbols-rounded" style="font-size:16px;">close</span>
+        </button>
+        <div style="text-align:center;margin-bottom:14px;">
+          <span class="material-symbols-rounded" style="font-size:36px;color:var(--success);">check_circle</span>
+          <h2 style="font-size:18px;margin-top:6px;">Delivery Receipt</h2>
+          <p style="font-size:11px;" id="receipt-date"></p>
+        </div>
+        <div class="receipt-divider"></div>
+        <div style="margin-bottom:10px;">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Job ID</div>
+          <div class="value" id="receipt-id"></div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Delivered To</div>
+          <div class="value" id="receipt-address"></div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div class="label" style="font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Package</div>
+          <div class="value" id="receipt-pkg"></div>
+        </div>
+        <div class="receipt-divider"></div>
+        <div style="text-align:center;">
+          <p style="font-size:11px;font-weight:600;color:var(--text-main);">Thank you for delivering with TRAKKR!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const jobsData = [
+      {
+        "id": "job_001", "type": "delivery", "status": "available", "distance_from_driver_km": 1.2,
+        "pickup":   { "address": "12 Aba Road, Port Harcourt",      "contact_name": "Warehouse Staff",    "contact_phone": "+234 802 000 0001" },
+        "delivery": { "address": "47 Rumuola Road, Port Harcourt",   "contact_name": "Mrs. Adaeze Nwosu",  "contact_phone": "+234 803 111 2233" },
+        "package":  { "description": "Electronics — Handle with care", "weight_kg": 2.5 }
+      },
+      {
+        "id": "job_002", "type": "pickup", "status": "available", "distance_from_driver_km": 2.8,
+        "pickup":   { "address": "3 Trans-Amadi Industrial Layout, PH", "contact_name": "Store Manager",   "contact_phone": "+234 805 222 3344" },
+        "delivery": { "address": "22 Stadium Road, Port Harcourt",       "contact_name": "Mr. Chidi Eze",  "contact_phone": "+234 806 333 4455" },
+        "package":  { "description": "Documents — Confidential", "weight_kg": 0.3 }
+      },
+      {
+        "id": "job_003", "type": "delivery", "status": "available", "distance_from_driver_km": 4.5,
+        "pickup":   { "address": "89 Ojoto Street, Rumuola",     "contact_name": "Dispatch Officer",      "contact_phone": "+234 807 444 5566" },
+        "delivery": { "address": "5 Ikwerre Road, Mile 3, PH",   "contact_name": "Alhaji Musa Ibrahim",   "contact_phone": "+234 808 555 6677" },
+        "package":  { "description": "Clothing — Fragile packaging", "weight_kg": 1.1 }
+      }
+    ];
+
+    const driverData = {
+      "name": "Emeka Obi",
+      "email": "emeka.obi@gmail.com",
+      "phone": "+234 801 234 5678",
+      "created_at": "2026-01-10T08:00:00Z"
+    };
+
+    const historyData = [
+      {
+        "id": "job_hist_001", "type": "delivery", "date": "Aug 30, 2026",
+        "delivery": { "address": "47 Rumuola Road, Port Harcourt" },
+        "package":  { "description": "Electronics — Handle with care" }
+      }
+    ];
+
+    const app = {
+      currentJob: null,
+      activeJobStep: null,
+      photoState: { pickup: false, delivery: false },
+
+      init() {
+        document.getElementById('welcome-name').textContent = driverData.name.split(' ')[0];
+        document.getElementById('profile-name').textContent  = driverData.name;
+        document.getElementById('profile-email').textContent = driverData.email;
+        document.getElementById('profile-phone').textContent = driverData.phone;
+        const d = new Date(driverData.created_at);
+        document.getElementById('profile-date').textContent  = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        this.renderJobList();
+        this.renderHistory();
+      },
+
+      renderHistory() {
+        const container = document.getElementById('history-list-container');
+        if (historyData.length === 0) {
+          container.innerHTML = `
+            <div class="placeholder-view" style="text-align:center;padding:24px;">
+              <div class="placeholder-icon">
+                <span class="material-symbols-rounded" style="font-size:34px;color:#111111;">history</span>
+              </div>
+              <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">No past jobs yet.</p>
+            </div>`;
+          return;
+        }
+        container.innerHTML = historyData.map(h => `
+          <div class="card job-item" onclick="app.openReceiptModal('${h.id}')">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span class="value" style="color:var(--success);display:flex;align-items:center;gap:4px;">
+                <span class="material-symbols-rounded" style="font-size:15px;">check_circle</span> Delivered
+              </span>
+              <span class="label">${h.date}</span>
+            </div>
+            <div class="value" style="margin-bottom:4px;">${h.delivery.address}</div>
+            <div class="label" style="font-size:11px;">${h.package.description}</div>
+          </div>`).join('');
+      },
+
+      navigate(viewId) {
+        document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewId}`).classList.add('active');
+
+        const bNav = document.getElementById('bottom-nav');
+        viewId === 'login' ? bNav.classList.add('hidden') : bNav.classList.remove('hidden');
+
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        if (['job-list', 'job-detail'].includes(viewId)) {
+          document.getElementById('nav-tab-jobs').classList.add('active');
+        } else if (['pickup-confirm', 'navigation', 'delivery-confirm', 'active-empty'].includes(viewId)) {
+          document.getElementById('nav-tab-active').classList.add('active');
+          if (this.currentJob && viewId !== 'active-empty') this.activeJobStep = viewId;
+        } else if (viewId === 'history') {
+          document.getElementById('nav-tab-history').classList.add('active');
+        } else if (viewId === 'profile') {
+          document.getElementById('nav-tab-profile').classList.add('active');
+        } else if (viewId === 'job-complete') {
+          document.getElementById('nav-tab-jobs').classList.add('active');
+        }
+
+        const trackMap = {
+          'job-detail':       ['track-detail',   0],
+          'pickup-confirm':   ['track-pickup',    1],
+          'navigation':       ['track-nav',       2],
+          'delivery-confirm': ['track-delivery',  3],
+        };
+        if (trackMap[viewId]) {
+          const [trackId, step] = trackMap[viewId];
+          document.getElementById(trackId).innerHTML = this.getProgressTrackHTML(step);
+        }
+      },
+
+      navTab(tabId) {
+        if      (tabId === 'jobs')    this.navigate('job-list');
+        else if (tabId === 'active')  this.navigate(this.activeJobStep ? this.activeJobStep : 'active-empty');
+        else if (tabId === 'history') this.navigate('history');
+        else if (tabId === 'profile') this.navigate('profile');
+      },
+
+      renderJobList() {
+        const container = document.getElementById('job-list-container');
+        container.innerHTML = jobsData.map(job => {
+          const tName = job.type.charAt(0).toUpperCase() + job.type.slice(1);
+          return `
+          <div class="card job-item" onclick="app.openJob('${job.id}')">
+            <div class="job-header">
+              <span class="badge ${job.type === 'pickup' ? 'badge-pickup' : 'badge-delivery'}">${tName}</span>
+              <span class="distance">
+                <span class="material-symbols-rounded" style="font-size:13px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20;">location_on</span>
+                ${job.distance_from_driver_km} km away
+              </span>
+            </div>
+            <div class="route">
+              <div class="route-point">
+                <span class="label" style="min-width:42px;">Pickup</span>
+                <span class="value">${job.pickup.address}</span>
+              </div>
+              <div class="route-point">
+                <span class="label" style="min-width:42px;">Drop</span>
+                <span class="value">${job.delivery.address}</span>
+              </div>
+            </div>
+            <div style="padding-top:10px;border-top:1.5px solid #e5e5e5;display:flex;justify-content:space-between;color:var(--text-muted);font-size:12px;">
+              <span>${job.package.description}</span>
+              <span style="font-weight:600;color:var(--text-main);">${job.package.weight_kg} kg</span>
+            </div>
+          </div>`;
+        }).join('');
+      },
+
+      openJob(jobId) {
+        this.currentJob = jobsData.find(j => j.id === jobId);
+        const j = this.currentJob;
+
+        document.getElementById('detail-pickup').textContent           = j.pickup.address;
+        document.getElementById('detail-pickup-contact').textContent   = `${j.pickup.contact_name} · ${j.pickup.contact_phone}`;
+        document.getElementById('detail-delivery').textContent         = j.delivery.address;
+        document.getElementById('detail-delivery-contact').textContent = `${j.delivery.contact_name} · ${j.delivery.contact_phone}`;
+        document.getElementById('detail-pkg').textContent              = j.package.description;
+        document.getElementById('detail-weight').textContent           = `${j.package.weight_kg} kg`;
+
+        document.getElementById('pickup-addr').innerHTML     = `${j.pickup.address}<br><span style="color:var(--text-muted);font-size:12px;font-weight:400;">${j.pickup.contact_name}</span>`;
+        document.getElementById('nav-destination').innerHTML = `${j.delivery.address}<br><span style="color:var(--text-muted);font-size:12px;font-weight:400;">${j.delivery.contact_name}</span>`;
+        document.getElementById('delivery-addr').innerHTML   = `${j.delivery.address}<br><span style="color:var(--text-muted);font-size:12px;font-weight:400;">${j.delivery.contact_name}</span>`;
+
+        document.getElementById('done-contact').textContent = j.delivery.contact_name;
+        document.getElementById('done-id').textContent      = j.id;
+        document.getElementById('done-addr').textContent    = j.delivery.address;
+        document.getElementById('done-pkg').textContent     = j.package.description;
+
+        document.getElementById('map-coords').textContent = (j.delivery.lat && j.delivery.lng)
+          ? `Lat: ${j.delivery.lat}, Lng: ${j.delivery.lng}` : '';
+
+        this.resetPhotos();
+        this.navigate('job-detail');
+      },
+
+      getProgressTrackHTML(currentStep) {
+        const steps = ['Accepted', 'Pickup', 'En Route', 'Delivered'];
+        const fillWidth = (currentStep / (steps.length - 1)) * 100;
+        const stepsHtml = steps.map((label, idx) => {
+          const cls  = idx === currentStep ? 'active' : idx < currentStep ? 'completed' : '';
+          const icon = idx < currentStep
+            ? '<span class="material-symbols-rounded" style="font-size:14px;font-weight:700;">check</span>'
+            : (idx + 1);
+          return `<div class="step-container"><div class="progress-step ${cls}">${icon}</div><span class="step-label">${label}</span></div>`;
+        }).join('');
+        return `<div class="progress-track"><div class="line-fill" style="width:${fillWidth}%"></div>${stepsHtml}</div>`;
+      },
+
+      takePhoto(type) {
+        const el = document.getElementById(`${type}-photo`);
+        el.classList.add('taken');
+        el.innerHTML = `<i class="ph ph-check-circle"></i><span>Photo captured</span><small>mock://photo-${Date.now()}.jpg</small>`;
+        this.photoState[type] = true;
+        document.getElementById(`btn-confirm-${type}`).disabled = false;
+      },
+
+      resetPhotos() {
+        this.photoState = { pickup: false, delivery: false };
+        ['pickup', 'delivery'].forEach(type => {
+          const el = document.getElementById(`${type}-photo`);
+          el.classList.remove('taken');
+          el.innerHTML = `<i class="ph ph-camera"></i><span>Tap to take photo</span><small>Required before continuing</small>`;
+          document.getElementById(`btn-confirm-${type}`).disabled = true;
+        });
+      },
+
+      logout() {
+        this.currentJob    = null;
+        this.activeJobStep = null;
+        this.resetPhotos();
+        this.navigate('login');
+      },
+
+      finishJob() {
+        this.currentJob    = null;
+        this.activeJobStep = null;
+        this.navigate('job-list');
+      },
+
+      openReceiptModal(histId) {
+        const hist = historyData.find(h => h.id === histId);
+        if (!hist) return;
+        document.getElementById('receipt-date').textContent    = hist.date;
+        document.getElementById('receipt-id').textContent      = hist.id;
+        document.getElementById('receipt-address').textContent = hist.delivery.address;
+        document.getElementById('receipt-pkg').textContent     = hist.package.description;
+        document.getElementById('receipt-modal-overlay').classList.add('active');
+      },
+
+      closeReceiptModal(e) {
+        if (e && e.target !== document.getElementById('receipt-modal-overlay')) return;
+        document.getElementById('receipt-modal-overlay').classList.remove('active');
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => app.init());
+  </script>
+</body>
+</html>
