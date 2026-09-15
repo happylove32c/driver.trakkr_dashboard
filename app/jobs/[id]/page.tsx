@@ -65,18 +65,36 @@ export default function JobDetailPage() {
   const handleAccept = async () => {
     if (!driver || job.driver_id) return
     setAccepting(true)
-    
-    const { error } = await supabase
+
+    const { error: jobErr } = await supabase
       .from('jobs')
       .update({ driver_id: driver.id, status_key: 'assigned', status: 'ASSIGNED' })
       .eq('id', job.id)
 
-    if (!error) {
-      router.push(`/jobs/${job.id}/pickup`)
-    } else {
-      console.error('Error accepting job:', error)
+    if (jobErr) {
+      console.error('Error accepting job:', jobErr)
       setAccepting(false)
+      return
     }
+
+    await supabase
+      .from('drivers')
+      .update({ is_taken: true })
+      .eq('id', driver.id)
+
+    await supabase.from('job_events').insert({
+      job_id: job.id,
+      driver_id: driver.id,
+      event_type: 'accepted',
+    })
+
+    await supabase.from('job_acceptance_history').insert({
+      job_id: job.id,
+      driver_id: driver.id,
+      action: 'accepted',
+    })
+
+    router.push(`/jobs/${job.id}/pickup`)
   }
 
   const isTakenByOther = job.driver_id && job.driver_id !== driver?.id

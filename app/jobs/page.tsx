@@ -20,15 +20,13 @@ export default function JobsPage() {
     }
 
     const fetchJobs = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('jobs')
         .select('*')
         .in('status_key', ['pending', 'assigned'])
         .or(`driver_id.is.null,driver_id.eq.${driver.id}`)
 
-      if (data) {
-        setJobs((data || []).filter(job => ['pending', 'assigned'].includes(job.status_key)))
-      }
+      setJobs(data || [])
       setLoading(false)
     }
 

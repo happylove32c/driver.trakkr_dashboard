@@ -88,14 +88,18 @@ export default function PickupPage() {
     if (!driver || !photoCaptured) return
     setConfirming(true)
 
-    // Insert job_events row
     await supabase.from('job_events').insert({
       job_id: jobId,
       driver_id: driver.id,
-      event_type: 'picked_up'
+      event_type: 'picked_up',
     })
 
-    // Update jobs status
+    await supabase.from('job_events').insert({
+      job_id: jobId,
+      driver_id: driver.id,
+      event_type: 'in_transit',
+    })
+
     const { error } = await supabase
       .from('jobs')
       .update({ status: 'IN TRANSIT', status_key: 'transit' })

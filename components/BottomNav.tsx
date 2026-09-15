@@ -60,11 +60,27 @@ export default function BottomNav() {
   const isProfile = pathname === '/profile'
   const isActive = pathname.startsWith('/jobs/') || pathname === '/active'
 
-  const handleActiveTab = () => {
-    if (activeJobId) {
-      router.push(`/jobs/${activeJobId}/pickup`)
-    } else {
+  const handleActiveTab = async () => {
+    if (!activeJobId) {
       router.push('/active')
+      return
+    }
+
+    const { data } = await supabase
+      .from('jobs')
+      .select('status_key')
+      .eq('id', activeJobId)
+      .single()
+
+    if (!data) {
+      router.push('/active')
+      return
+    }
+
+    if (data.status_key === 'transit') {
+      router.push(`/jobs/${activeJobId}/navigation`)
+    } else {
+      router.push(`/jobs/${activeJobId}/pickup`)
     }
   }
 

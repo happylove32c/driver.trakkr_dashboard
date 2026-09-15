@@ -88,20 +88,17 @@ export default function DeliveryPage() {
     if (!driver || !photoCaptured) return
     setConfirming(true)
 
-    // Insert job_events row
     await supabase.from('job_events').insert({
       job_id: jobId,
       driver_id: driver.id,
-      event_type: 'delivered'
+      event_type: 'delivered',
     })
 
-    // Update jobs status
     const { error: jobErr } = await supabase
       .from('jobs')
-      .update({ status: 'DELIVERED', status_key: 'closed' })
+      .update({ status: 'DELIVERED', status_key: 'delivered' })
       .eq('id', jobId)
 
-    // Update driver is_taken
     const { error: driverErr } = await supabase
       .from('drivers')
       .update({ is_taken: false })
