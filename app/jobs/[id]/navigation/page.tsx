@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 import TopBar from '../../../../components/TopBar'
 import ProgressTrack from '../../../../components/ProgressTrack'
-import MapPlaceholder from '../../../../components/MapPlaceholder'
+// import MapPlaceholder from '../../../../components/MapPlaceholder'
+import LiveMap from '../../../../components/MapPlaceholder'
 import { Job } from '../../../../components/JobCard'
 
 export default function NavigationPage() {
@@ -62,8 +63,11 @@ export default function NavigationPage() {
       <ProgressTrack currentStep={2} />
 
       <div className="content-area" style={{ display: 'flex', flexDirection: 'column' }}>
-        <MapPlaceholder destinationAddress={job.delivery_address || 'Unknown Delivery Location'} />
-
+        {/* <MapPlaceholder destinationAddress={job.delivery_address || 'Unknown Delivery Location'} /> */}
+        <LiveMap
+          destinationAddress={job.delivery_address || ''}
+          pickupAddress={job.pickup_address || ''}
+        />
         <div className="card" style={{ marginTop: '16px' }}>
           <h3>Delivering To</h3>
           <p className="value">{job.delivery_address || 'Unknown Delivery'}</p>
