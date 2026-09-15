@@ -33,6 +33,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session?.user?.email) {
@@ -59,7 +60,6 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const fetchDriver = async (email: string) => {
-    setLoading(true)
     const { data, error } = await supabase
       .from('drivers')
       .select('*')

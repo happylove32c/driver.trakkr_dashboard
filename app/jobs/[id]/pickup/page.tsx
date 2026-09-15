@@ -1,85 +1,157 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
-import { useDriver } from '../../../../context/DriverContext'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import { useDriver } from '../../../../context/DriverContext'
 import TopBar from '../../../../components/TopBar'
 import ProgressTrack from '../../../../components/ProgressTrack'
 import PhotoCapture from '../../../../components/PhotoCapture'
 import { Job } from '../../../../components/JobCard'
 
-export default function PickupPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const { driver } = useDriver()
+export default function PickupPage() {
+  const params = useParams()
   const router = useRouter()
+  const { driver } = useDriver()
+  const jobId = params.id as string
+
   const [job, setJob] = useState<Job | null>(null)
-  const [photo, setPhoto] = useState<File | null>(null)
+  const [loading, setLoading] = useState(true)
+  
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [photoCaptured, setPhotoCaptured] = useState(false)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     const fetchJob = async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('id', id).single()
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+
       if (data) {
-        if (data.driver_id !== driver?.id) {
-          router.push('/jobs')
-        } else {
-          setJob(data)
-        }
+        setJob(data)
+      } else {
+        console.error('Failed to fetch job', error)
       }
+      setLoading(false)
     }
-    if (driver) fetchJob()
-  }, [id, driver, router])
 
-  const handleConfirm = async () => {
-    if (!job || !driver || !photo) return
+    fetchJob()
+  }, [jobId])
+
+  const handleCapture = async (file: File) => {
+    if (!driver || !jobId) return
     setUploading(true)
+    setUploadError(null)
 
-    const timestamp = new Date().getTime()
-    const filePath = `${job.id}/pickup_${timestamp}.jpg`
+    const path = `${jobId}/pickup_${Date.now()}.jpg`
 
-    const { error: uploadError } = await supabase.storage.from('job-proofs').upload(filePath, photo)
+    const { error: uploadErr } = await supabase.storage
+      .from('job_proofs')
+      .upload(path, file)
 
-    let fileUrl = ''
-    if (!uploadError) {
-      const { data } = supabase.storage.from('job-proofs').getPublicUrl(filePath)
-      fileUrl = data.publicUrl
+    if (uploadErr) {
+      console.error('Upload error:', uploadErr)
+      setUploadError('Failed to upload photo. Please try again.')
+      setUploading(false)
+      return
     }
 
-    await supabase.from('job_proofs').insert({ job_id: job.id, driver_id: driver.id, proof_type: 'pickup', file_url: fileUrl })
-    await supabase.from('job_events').insert({ job_id: job.id, driver_id: driver.id, event_type: 'pickup_confirmed' })
-    await supabase.from('jobs').update({ status_key: 'transit' }).eq('id', job.id)
+    const { data: publicUrlData } = supabase.storage
+      .from('job_proofs')
+      .getPublicUrl(path)
 
-    router.push(`/jobs/${job.id}/navigation`)
+    const { error: dbErr } = await supabase
+      .from('job_proofs')
+      .insert({
+        job_id: jobId,
+        driver_id: driver.id,
+        proof_type: 'pickup_photo',
+        file_url: publicUrlData.publicUrl
+      })
+
+    if (dbErr) {
+      console.error('DB Insert error:', dbErr)
+      setUploadError('Failed to save photo record. Please try again.')
+      setUploading(false)
+      return
+    }
+
+    setPhotoCaptured(true)
+    setUploading(false)
   }
 
-  if (!job) return <div className="view active"><div className="content-area">Loading...</div></div>
+  const handleConfirm = async () => {
+    if (!driver || !photoCaptured) return
+    setConfirming(true)
 
-  const routeParts = job.route ? job.route.split('→').map(p => p.trim()) : []
-  const pickupAddr = job.pickup_address || routeParts[0] || 'Unknown'
+    // Insert job_events row
+    await supabase.from('job_events').insert({
+      job_id: jobId,
+      driver_id: driver.id,
+      event_type: 'picked_up'
+    })
+
+    // Update jobs status
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: 'IN TRANSIT', status_key: 'transit' })
+      .eq('id', jobId)
+
+    if (!error) {
+      router.push(`/jobs/${jobId}/navigation`)
+    } else {
+      console.error('Error confirming pickup:', error)
+      setConfirming(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="view active">
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          LOADING JOB...
+        </div>
+      </div>
+    )
+  }
+
+  if (!job) {
+    return (
+      <div className="view active">
+        <TopBar title="Confirm Pickup" backHref={`/jobs/${jobId}`} />
+        <div className="content-area">
+          <p>Job not found.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="view active">
-      <TopBar title="Confirm Pickup" backHref={`/jobs/${job.id}`} />
+      <TopBar title="Confirm Pickup" backHref={`/jobs/${jobId}`} />
       <ProgressTrack currentStep={1} />
+
       <div className="content-area">
         <div className="card">
-          <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Pickup Location</div>
-          <div className="value" style={{ fontSize: '14px', marginTop: '4px' }}>{pickupAddr}</div>
-          {job.pickup_contact_name && <div className="value" style={{ fontSize: '13px', marginTop: '4px' }}>{job.pickup_contact_name}</div>}
+          <h3>Pickup Location</h3>
+          <p className="value">{job.pickup_address || 'Unknown Pickup'}</p>
         </div>
-        
-        <h3>Proof of Pickup</h3>
-        <PhotoCapture label="Pickup Photo" onCapture={setPhoto} captured={!!photo} />
-        
-        <div style={{ flex: 1 }}></div>
-        <button 
-          className="btn btn-success" 
-          disabled={!photo || uploading} 
-          onClick={handleConfirm}
-        >
-          {uploading ? 'Confirming...' : 'Confirm Pickup'}
-        </button>
+
+        <div style={{ margin: '20px 0' }}>
+          <PhotoCapture label="Pickup Photo" onCapture={handleCapture} captured={photoCaptured} />
+          {uploading && <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center' }}>Uploading photo...</p>}
+          {uploadError && <p style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '8px', textAlign: 'center' }}>{uploadError}</p>}
+        </div>
+
+        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+          <button className="btn btn-success" onClick={handleConfirm} disabled={!photoCaptured || confirming}>
+            {confirming ? 'Confirming...' : 'Confirm Pickup'}
+          </button>
+        </div>
       </div>
     </div>
   )

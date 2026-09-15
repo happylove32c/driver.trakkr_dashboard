@@ -1,117 +1,139 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
-import { useDriver } from '../../../context/DriverContext'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { useDriver } from '../../../context/DriverContext'
 import TopBar from '../../../components/TopBar'
 import ProgressTrack from '../../../components/ProgressTrack'
 import { Job } from '../../../components/JobCard'
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const { driver } = useDriver()
+type JobWithDriver = Job & {
+  drivers?: { full_name: string } | null
+}
+
+export default function JobDetailPage() {
+  const params = useParams()
   const router = useRouter()
-  const [job, setJob] = useState<Job | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { driver } = useDriver()
+  const jobId = params.id as string
+
+  const [job, setJob] = useState<JobWithDriver | null>(null)
+  const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
 
   useEffect(() => {
     const fetchJob = async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('id', id).single()
-      if (data) setJob(data)
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*, drivers(full_name)')
+        .eq('id', jobId)
+        .single()
+
+      if (data) {
+        setJob(data)
+      } else {
+        console.error('Failed to fetch job', error)
+      }
+      setLoading(false)
     }
+
     fetchJob()
-  }, [id])
+  }, [jobId])
 
-  const handleAccept = async () => {
-    if (!driver || !job) return
-    setAccepting(true)
-    setError(null)
-
-    const { error, count } = await supabase
-      .from('jobs')
-      .update({ status_key: 'assigned', driver_id: driver.id })
-      .eq('id', job.id)
-      .eq('status_key', 'pending')
-
-    if (error || count === 0) {
-      setError("This job was just taken by another driver.")
-      setAccepting(false)
-      return
-    }
-
-    await supabase.from('job_acceptance_history').insert({ job_id: job.id, driver_id: driver.id, action: 'accepted' })
-    await supabase.from('job_events').insert({ job_id: job.id, driver_id: driver.id, event_type: 'accepted' })
-    await supabase.from('drivers').update({ is_taken: true }).eq('id', driver.id)
-
-    router.push(`/jobs/${job.id}/pickup`)
+  if (loading) {
+    return (
+      <div className="view active">
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          LOADING JOB...
+        </div>
+      </div>
+    )
   }
 
-  if (!job) return <div className="view active"><div className="content-area">Loading...</div></div>
+  if (!job) {
+    return (
+      <div className="view active">
+        <TopBar title="Job Details" backHref="/jobs" />
+        <div className="content-area">
+          <p>Job not found.</p>
+        </div>
+      </div>
+    )
+  }
 
-  const routeParts = job.route ? job.route.split('→').map(p => p.trim()) : []
-  const pickupAddr = job.pickup_address || routeParts[0] || 'Unknown'
-  const deliveryAddr = job.delivery_address || routeParts[1] || 'Unknown'
+  const handleAccept = async () => {
+    if (!driver || job.driver_id) return
+    setAccepting(true)
+    
+    const { error } = await supabase
+      .from('jobs')
+      .update({ driver_id: driver.id, status_key: 'assigned', status: 'ASSIGNED' })
+      .eq('id', job.id)
+
+    if (!error) {
+      router.push(`/jobs/${job.id}/pickup`)
+    } else {
+      console.error('Error accepting job:', error)
+      setAccepting(false)
+    }
+  }
+
+  const isTakenByOther = job.driver_id && job.driver_id !== driver?.id
+  const isTakenByMe = job.driver_id === driver?.id
 
   return (
-    <div className="view active" id="view-job-detail">
+    <div className="view active">
       <TopBar title="Job Details" backHref="/jobs" />
       <ProgressTrack currentStep={0} />
-      <div className="content-area">
-        {error && <div style={{ color: 'var(--danger)', marginBottom: '10px', fontSize: '13px', fontWeight: 'bold' }}>{error}</div>}
-        
+
+      <div className="content-area" style={{ overflowY: 'auto' }}>
         <div className="card">
-          <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '10px' }}>Pickup</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span className="label">Address</span>
-            <span className="value" style={{ textAlign: 'right', maxWidth: '60%' }}>{pickupAddr}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span className="label">Contact</span>
-            <span className="value">{job.pickup_contact_name} · {job.pickup_contact_phone}</span>
-          </div>
+          <h3>Pickup</h3>
+          <p className="value">{job.pickup_address || 'Unknown Pickup'}</p>
+          <p className="label" style={{ marginTop: '4px' }}>
+            {job.pickup_contact_name} {job.pickup_contact_phone ? `• ${job.pickup_contact_phone}` : ''}
+          </p>
         </div>
 
         <div className="card">
-          <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '10px' }}>Delivery</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span className="label">Address</span>
-            <span className="value" style={{ textAlign: 'right', maxWidth: '60%' }}>{deliveryAddr}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span className="label">Contact</span>
-            <span className="value">{job.delivery_contact_name} · {job.delivery_contact_phone}</span>
-          </div>
+          <h3>Delivery</h3>
+          <p className="value">{job.delivery_address || 'Unknown Delivery'}</p>
+          <p className="label" style={{ marginTop: '4px' }}>
+            {job.delivery_contact_name} {job.delivery_contact_phone ? `• ${job.delivery_contact_phone}` : ''}
+          </p>
         </div>
 
         <div className="card">
-          <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '10px' }}>Package</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-            <span className="label">Contents</span>
-            <span className="value">{job.cargo_description}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+          <h3>Cargo</h3>
+          <p className="value">{job.cargo_description}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
             <span className="label">Weight</span>
             <span className="value">{job.weight_kg} kg</span>
           </div>
+          {job.special_instructions && (
+            <div style={{ marginTop: '12px' }}>
+              <span className="label">Special Instructions</span>
+              <p className="value" style={{ marginTop: '4px', fontSize: '12px' }}>{job.special_instructions}</p>
+            </div>
+          )}
         </div>
 
-        {job.special_instructions && (
-          <div className="card">
-            <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '10px' }}>Instructions</div>
-            <div style={{ fontSize: '13px' }}>{job.special_instructions}</div>
-          </div>
-        )}
-
-        <div style={{ flex: 1 }}></div>
-        <button 
-          className="btn btn-success" 
-          onClick={handleAccept} 
-          disabled={job.status_key !== 'pending' || accepting}
-        >
-          {accepting ? 'Accepting...' : 'Accept Job'}
-        </button>
+        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+          {isTakenByOther ? (
+            <button className="btn" disabled>
+              Job Taken
+            </button>
+          ) : isTakenByMe ? (
+            <button className="btn btn-success" onClick={() => router.push(`/jobs/${job.id}/pickup`)}>
+              Continue Job
+            </button>
+          ) : (
+            <button className="btn" onClick={handleAccept} disabled={accepting || !driver}>
+              {accepting ? 'Accepting...' : 'Accept Job'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

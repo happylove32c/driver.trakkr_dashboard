@@ -1,8 +1,5 @@
-'use client'
-
-import { usePathname } from 'next/navigation'
 import { DriverProvider } from '../context/DriverContext'
-import BottomNav from '../components/BottomNav'
+import BottomNavWrapper from '../components/BottomNavWrapper'
 import './globals.css'
 
 export default function RootLayout({
@@ -10,8 +7,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  
   return (
     <html lang="en">
       <head>
@@ -24,7 +19,7 @@ export default function RootLayout({
         <DriverProvider>
           <div id="app-container" style={{ width: '100%', maxWidth: '420px', backgroundColor: 'var(--bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '8px 0 0 #111111, -8px 0 0 #111111' }}>
             {children}
-            {pathname !== '/login' && <BottomNav />}
+            <BottomNavWrapper />
           </div>
         </DriverProvider>
       </body>

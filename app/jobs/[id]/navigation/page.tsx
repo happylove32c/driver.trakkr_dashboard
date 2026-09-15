@@ -1,45 +1,79 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 import TopBar from '../../../../components/TopBar'
 import ProgressTrack from '../../../../components/ProgressTrack'
 import MapPlaceholder from '../../../../components/MapPlaceholder'
 import { Job } from '../../../../components/JobCard'
 
-export default function NavigationPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function NavigationPage() {
+  const params = useParams()
   const router = useRouter()
+  const jobId = params.id as string
+
   const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchJob = async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('id', id).single()
-      if (data) setJob(data)
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+
+      if (data) {
+        setJob(data)
+      } else {
+        console.error('Failed to fetch job', error)
+      }
+      setLoading(false)
     }
+
     fetchJob()
-  }, [id])
+  }, [jobId])
 
-  if (!job) return <div className="view active"><div className="content-area">Loading...</div></div>
+  if (loading) {
+    return (
+      <div className="view active">
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          LOADING NAVIGATION...
+        </div>
+      </div>
+    )
+  }
 
-  const routeParts = job.route ? job.route.split('→').map(p => p.trim()) : []
-  const deliveryAddr = job.delivery_address || routeParts[1] || 'Unknown'
+  if (!job) {
+    return (
+      <div className="view active">
+        <TopBar title="Navigation" backHref={`/jobs/${jobId}/pickup`} />
+        <div className="content-area">
+          <p>Job not found.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="view active">
-      <TopBar title="En Route" backHref={`/jobs/${job.id}/pickup`} />
+      <TopBar title="Navigation" backHref={`/jobs/${jobId}/pickup`} />
       <ProgressTrack currentStep={2} />
-      <div className="content-area">
-        <MapPlaceholder destinationAddress={deliveryAddr} lat={job.pickup_lat || undefined} lng={job.pickup_lng || undefined} />
-        <div className="card">
-          <div className="label" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '6px' }}>Destination</div>
-          <div className="value" style={{ fontSize: '14px', marginTop: '4px' }}>{deliveryAddr}</div>
-          {job.delivery_contact_name && <div className="value" style={{ fontSize: '13px', marginTop: '4px' }}>{job.delivery_contact_name}</div>}
+
+      <div className="content-area" style={{ display: 'flex', flexDirection: 'column' }}>
+        <MapPlaceholder destinationAddress={job.delivery_address || 'Unknown Delivery Location'} />
+
+        <div className="card" style={{ marginTop: '16px' }}>
+          <h3>Delivering To</h3>
+          <p className="value">{job.delivery_address || 'Unknown Delivery'}</p>
         </div>
-        
-        <div style={{ flex: 1 }}></div>
-        <button className="btn" onClick={() => router.push(`/jobs/${job.id}/delivery`)}>I've Arrived</button>
+
+        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+          <button className="btn btn-success" onClick={() => router.push(`/jobs/${jobId}/delivery`)}>
+            I've Arrived
+          </button>
+        </div>
       </div>
     </div>
   )

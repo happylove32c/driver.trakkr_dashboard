@@ -1,52 +1,87 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 import { Job } from '../../../../components/JobCard'
 
-export default function CompletePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function CompletePage() {
+  const params = useParams()
   const router = useRouter()
+  const jobId = params.id as string
+
   const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchJob = async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('id', id).single()
-      if (data) setJob(data)
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+
+      if (data) {
+        setJob(data)
+      } else {
+        console.error('Failed to fetch job', error)
+      }
+      setLoading(false)
     }
+
     fetchJob()
-  }, [id])
+  }, [jobId])
 
-  if (!job) return <div className="view active"><div className="content-area">Loading...</div></div>
+  if (loading) {
+    return (
+      <div className="view active">
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          LOADING JOB...
+        </div>
+      </div>
+    )
+  }
 
-  const routeParts = job.route ? job.route.split('→').map(p => p.trim()) : []
-  const deliveryAddr = job.delivery_address || routeParts[1] || 'Unknown'
+  if (!job) {
+    return (
+      <div className="view active">
+        <div className="content-area">
+          <p>Job not found.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="view active" id="view-job-complete">
-      <div className="success-icon">
-        <span className="material-symbols-rounded">check</span>
+    <div className="view active" style={{ justifyContent: 'center', alignItems: 'center', padding: '20px', textAlign: 'center' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <span className="material-symbols-rounded" style={{ fontSize: '80px', color: 'var(--success)' }}>
+          check_circle
+        </span>
       </div>
-      <h2>Delivery Complete</h2>
-      <p style={{ marginBottom: '28px', textAlign: 'center' }}>Admin has been notified. Package delivered to <strong>{job.delivery_contact_name || 'Destination'}</strong>.</p>
-      
-      <div className="card" style={{ width: '100%', textAlign: 'left', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+
+      <h1 style={{ marginBottom: '24px' }}>Delivery Complete</h1>
+
+      <div className="card" style={{ width: '100%', textAlign: 'left', marginBottom: '32px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <span className="label">Job ID</span>
-          <span className="value">{job.id.substring(0, 8)}...</span>
+          <p className="value" style={{ fontSize: '11px', wordBreak: 'break-all' }}>{job.id}</p>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span className="label">Delivered to</span>
-          <span className="value" style={{ textAlign: 'right', maxWidth: '60%' }}>{deliveryAddr}</span>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <span className="label">Delivered To</span>
+          <p className="value">{job.delivery_address || 'Unknown Delivery Location'}</p>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span className="label">Package</span>
-          <span className="value">{job.cargo_description}</span>
+
+        <div>
+          <span className="label">Cargo</span>
+          <p className="value">{job.cargo_description}</p>
         </div>
       </div>
-      
-      <button className="btn" onClick={() => router.push('/jobs')}>Back to Jobs</button>
+
+      <button className="btn" onClick={() => router.push('/jobs')} style={{ width: '100%' }}>
+        Back to Jobs
+      </button>
     </div>
   )
 }

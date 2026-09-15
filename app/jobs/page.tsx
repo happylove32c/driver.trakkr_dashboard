@@ -27,22 +27,29 @@ export default function JobsPage() {
         .or(`driver_id.is.null,driver_id.eq.${driver.id}`)
 
       if (data) {
-        setJobs(data)
+        setJobs((data || []).filter(job => ['pending', 'assigned'].includes(job.status_key)))
       }
       setLoading(false)
     }
 
     fetchJobs()
 
-    const intervalId = setInterval(fetchJobs, 3000)
-
-    const channel = supabase.channel('jobs_changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs' }, fetchJobs)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs' }, fetchJobs)
+    const channel = supabase
+      .channel(`jobs_driver_${driver.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs',
+        },
+        () => {
+          fetchJobs()
+        }
+      )
       .subscribe()
 
     return () => {
-      clearInterval(intervalId)
       supabase.removeChannel(channel)
     }
   }, [driver, driverLoading, router])
